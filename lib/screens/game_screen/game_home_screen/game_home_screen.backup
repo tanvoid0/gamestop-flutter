@@ -1,0 +1,92 @@
+import 'package:eva_icons_flutter/eva_icons_flutter.dart';
+import 'package:flutter/material.dart';
+import 'package:gamestop/model/model.dart';
+import 'package:gamestop/provider/provider_export.dart';
+import 'package:gamestop/screens/game_screen/game_search_screen/game_search_screen.dart';
+import 'package:gamestop/style/theme.dart';
+import 'package:gamestop/widgets/scaffold/app_drawer.dart';
+import 'package:gamestop/widgets/widgets.dart';
+import 'package:provider/provider.dart';
+
+import 'components/banner_list.dart';
+import 'components/games_by_genre_list.dart';
+
+class GameHomeScreen extends StatefulWidget {
+  static final routeName = "/game_home";
+  const GameHomeScreen({Key key}) : super(key: key);
+  @override
+  _GameHomeScreenState createState() => _GameHomeScreenState();
+}
+
+class _GameHomeScreenState extends State<GameHomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
+  List<Game> games;
+  var gamesByGenre;
+  var _isInit = true;
+  var _isLoading = false;
+
+  loadGames() {
+    setState(() {
+      _isLoading = true;
+    });
+    Provider.of<Games>(context, listen: false).fetchAndSetGames().then((_) {
+      setState(() {
+        _isLoading = false;
+      });
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    if (_isInit) loadGames();
+    _isInit = false;
+    super.didChangeDependencies();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    games = Provider.of<Games>(context).games;
+    gamesByGenre = Provider.of<Games>(context).gamesByGenre;
+    final List<String> images = games.map((game) => game.image).toList();
+
+    if (_isInit || _isLoading)
+      return Center(child: CircularProgressIndicator());
+    else
+      return Scaffold(
+        key: _scaffoldKey,
+        // extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: primaryColor,
+          centerTitle: true,
+          leading: IconButton(
+            icon: Icon(EvaIcons.menu2Outline, color: whiteColor),
+            onPressed: () {
+              _scaffoldKey.currentState.openDrawer();
+            },
+          ),
+          title: Text("Gamestop"),
+          actions: <Widget>[
+            IconButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed(GameSearchScreen.routeName);
+              },
+              icon: Icon(EvaIcons.searchOutline, color: whiteColor),
+            ),
+          ],
+        ),
+        drawer: AppDrawer(),
+        body: games == null
+            ? Center(
+                child: CircularProgressIndicator(),
+              )
+            : SingleChildScrollView(
+                child: Column(
+                  children: <Widget>[
+                    BannerList(images: images),
+                    GamesByGenreList(gamesByGenre: gamesByGenre),
+                  ],
+                ),
+              ),
+      );
+  }
+}
